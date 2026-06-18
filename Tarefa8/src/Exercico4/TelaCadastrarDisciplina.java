@@ -2,101 +2,166 @@ package Exercico4;
 
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
-import java.awt.Label;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.JTextField;
-import javax.swing.SwingConstants;
+import javax.swing.ListSelectionModel;
+import javax.swing.RowFilter;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 
 public class TelaCadastrarDisciplina extends JFrame {
 
-	JTextField nome ;
-	JTextField professor ;
-	JTextField qtdAlunos;
-	JButton salvar ;
-	
-	public TelaCadastrarDisciplina() {
-		setTitle("CADASTRO DE DISCIPLINA");
-		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		setSize(700,300);
-		setResizable(false);
-		setLocationRelativeTo(null);
-		
-		nome = new JTextField();
-		professor = new JTextField();
-		qtdAlunos = new JTextField();
-		JComboBox<String> profs = new JComboBox<String>(SistemaAcademico.getInstancia().nomeDosProf());
-		salvar = new JButton("SALVAR");
-		
-		salvar.setHorizontalAlignment(SwingConstants.CENTER);
-		salvar.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
-		JPanel painel = new JPanel(new GridLayout(3,3,5,5));
-		painel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
-		
+    private JTextField nome;
+    private JTextField qtdAlunos;
+    private JTextField buscaProf;
+    private DefaultTableModel modeloProfessores;
+    private JTable tabelaProfessores;
+    private TableRowSorter<DefaultTableModel> sorterProf;
+    private JButton salvar;
 
-		painel.add(new JLabel("Nome :"));
-		painel.add(nome);
-		painel.add(new Label(" Professor :"));
-		painel.add(profs);
-		painel.add(new JLabel("Quantidade de Alunos :"));
-		painel.add(qtdAlunos);
-		
-		add(painel, BorderLayout.NORTH);
-		add(salvar, BorderLayout.SOUTH);
-		
-		salvar.addActionListener(new ActionListener() {
-			
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				try {
-					String nomeDigitao = nome.getText();
-					String profesorDigitado = (String) profs.getSelectedItem();
-					String qtdAlunoDigitada = qtdAlunos.getText();
-					int qtdAlunos = Integer.parseInt(qtdAlunoDigitada);
-					if ( qtdAlunos < 1) {
-						throw new IllegalArgumentException("Não se pode criar uma Disciplina sem alunos");
-					}
-					Professor profDisciplina = SistemaAcademico.getInstancia().buscarProfessorPorNome(profesorDigitado);
-					
-					if (profDisciplina == null) {
-						throw new IllegalArgumentException("Erro: Professor/a não foi encotrado: " + profesorDigitado);
-					}
-					Disciplina novaDisciplina = new Disciplina(nomeDigitao, profDisciplina, qtdAlunos);
-					SistemaAcademico.getInstancia().cadastrarDisciplina(novaDisciplina);
-					JOptionPane.showMessageDialog(null, "Disciplina cadastrada com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
-					dispose();
-					
-				} catch (NumberFormatException e2) {
-					JOptionPane.showMessageDialog(null, "Erro: Por favor, insere apenas valores válidos!", "Entrada Inválida", JOptionPane.ERROR_MESSAGE);
-				} catch (IllegalArgumentException e3) {
-					JOptionPane.showMessageDialog(null,  e3.getMessage(), "Aviso validação ", JOptionPane.WARNING_MESSAGE);
-				}
-				
-			}
-		});
-		
-		KeyAdapter garanteNumero = new KeyAdapter() {
+    public TelaCadastrarDisciplina() {
+        setTitle("CADASTRO DE DISCIPLINA");
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
-			@Override 
-			public void keyTyped(KeyEvent e) {
-				char caractere = e.getKeyChar();
+        // --- PAINEL SUPERIOR: DADOS DA DISCIPLINA ---
+        JPanel painelFormulario = new JPanel(new GridLayout(2, 2, 5, 5));
+        painelFormulario.setBorder(BorderFactory.createTitledBorder("Informações Básicas"));
+        
+        nome = new JTextField();
+        qtdAlunos = new JTextField();
+        
+        painelFormulario.add(new JLabel("Nome da Disciplina:"));
+        painelFormulario.add(nome);
+        painelFormulario.add(new JLabel("Quantidade MÁX de Alunos (Limite):"));
+        painelFormulario.add(qtdAlunos);
 
-				if (!Character.isDigit(caractere)) {
-					e.consume();
-				}
-			}
-		};
-		
-		qtdAlunos.addKeyListener(garanteNumero);
-	}
+        // Restrição numérica usando KeyAdapter igual às suas outras telas
+        qtdAlunos.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                if (!Character.isDigit(e.getKeyChar())) {
+                    e.consume();
+                }
+            }
+        });
+
+        // --- PAINEL CENTRAL: SELEÇÃO DE PROFESSOR COM TABELA ---
+        JPanel painelProf = new JPanel(new BorderLayout(5, 5));
+        painelProf.setBorder(BorderFactory.createTitledBorder("Selecione o Professor Responsável"));
+        
+        buscaProf = new JTextField();
+        painelProf.add(buscaProf, BorderLayout.NORTH);
+
+        modeloProfessores = new DefaultTableModel(new String[]{"Professor / Docente"}, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+        tabelaProfessores = new JTable(modeloProfessores);
+        tabelaProfessores.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        sorterProf = new TableRowSorter<>(modeloProfessores);
+        tabelaProfessores.setRowSorter(sorterProf);
+        painelProf.add(new JScrollPane(tabelaProfessores), BorderLayout.CENTER);
+
+        // Filtro em tempo real para os Professores
+        buscaProf.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e) { filtrar(); }
+            @Override public void removeUpdate(DocumentEvent e) { filtrar(); }
+            @Override public void changedUpdate(DocumentEvent e) { filtrar(); }
+            private void filtrar() {
+                String t = buscaProf.getText();
+                if (t.trim().length() == 0) sorterProf.setRowFilter(null);
+                else sorterProf.setRowFilter(RowFilter.regexFilter("(?i)" + t));
+            }
+        });
+
+        // --- BOTÃO SALVAR ---
+        salvar = new JButton("CADASTRAR DISCIPLINA");
+        salvar.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        salvar.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int idxProf = tabelaProfessores.getSelectedRow();
+                
+                if (idxProf == -1) {
+                    JOptionPane.showMessageDialog(null, "Por favor, selecione um professor na tabela.", "Aviso", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                try {
+                    String nomeDisciplina = nome.getText();
+                    String qtdAlunoDigitada = qtdAlunos.getText();
+                    
+                    if (nomeDisciplina.trim().isEmpty() || qtdAlunoDigitada.trim().isEmpty()) {
+                        throw new IllegalArgumentException("Todos os campos básicos devem ser preenchidos.");
+                    }
+                    
+                    int limiteAlunos = Integer.parseInt(qtdAlunoDigitada);
+                    if (limiteAlunos < 1) {
+                        throw new IllegalArgumentException("Não se pode criar uma Disciplina sem alunos.");
+                    }
+
+                    int realIdxProf = tabelaProfessores.convertRowIndexToModel(idxProf);
+                    String nomeProfSelecionado = (String) modeloProfessores.getValueAt(realIdxProf, 0);
+                    
+                    Professor profDisciplina = SistemaAcademico.getInstancia().buscarProfessorPorNome(nomeProfSelecionado);
+                    if (profDisciplina == null) {
+                        throw new IllegalArgumentException("Professor não encontrado no banco de dados.");
+                    }
+
+                    Disciplina novaDisciplina = new Disciplina(nomeDisciplina, profDisciplina, limiteAlunos);
+                    SistemaAcademico.getInstancia().cadastrarDisciplina(novaDisciplina);
+                    
+                    JOptionPane.showMessageDialog(null, "Disciplina cadastrada com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                    dispose();
+
+                } catch (NumberFormatException e2) {
+                    JOptionPane.showMessageDialog(null, "Insira apenas números inteiros válidos!", "Entrada Inválida", JOptionPane.ERROR_MESSAGE);
+                } catch (IllegalArgumentException e3) {
+                    JOptionPane.showMessageDialog(null, e3.getMessage(), "Aviso de Validação", JOptionPane.WARNING_MESSAGE);
+                }
+            }
+        });
+
+        // --- ESTRUTURA FINAL DA JANELA ---
+        JPanel painelConteudo = new JPanel(new BorderLayout(10, 10));
+        painelConteudo.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        painelConteudo.add(painelFormulario, BorderLayout.NORTH);
+        painelConteudo.add(painelProf, BorderLayout.CENTER);
+
+        setLayout(new BorderLayout());
+        add(painelConteudo, BorderLayout.CENTER);
+        add(salvar, BorderLayout.SOUTH);
+
+        addWindowFocusListener(new WindowAdapter() {
+            @Override public void windowGainedFocus(WindowEvent e) { carregarProfessores(); }
+        });
+
+        pack();
+        setSize(550, 450);
+        setLocationRelativeTo(null);
+    }
+
+    private void carregarProfessores() {
+        modeloProfessores.setRowCount(0);
+        String[] listaProf = SistemaAcademico.getInstancia().nomeDosProf();
+        for (String p : listaProf) {
+            modeloProfessores.addRow(new Object[]{p});
+        }
+    }
 }

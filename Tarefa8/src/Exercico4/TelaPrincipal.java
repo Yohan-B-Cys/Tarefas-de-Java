@@ -23,7 +23,7 @@ public class TelaPrincipal extends JFrame {
 	public TelaPrincipal(){
 		setTitle("SISTEMA ACADEMICO  ");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setSize(800,1000);
+		setSize(800,600);
 		setResizable(false);
 		setLocationRelativeTo(null);
 		
@@ -36,11 +36,13 @@ public class TelaPrincipal extends JFrame {
 		op7 = new JButton("7 - CADASTRAR PROFESSOR");
 		op8 = new JButton("8 - CADASTRAR DISCIPLINA");
 		op9 = new JButton("9 - LISTAR PROFESSORES E SUAS DISCIPLINAS");
-		
-		JPanel painelTopo = new JPanel(new GridLayout(10,1,5,5));
+
+		// Muda o Layout para uma grade de 10 linhas e 1 coluna (com 5 pixels de espaço)
+		JPanel painelTopo = new JPanel(new GridLayout(10, 1, 5, 5));
 		painelTopo.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
-		
-		painelTopo.add(new JLabel("SISTEMA ACADEMICO ESCOLHA A OPÇAO DESEJADA:"));
+
+		JLabel label = new JLabel("SISTEMA ACADEMICO ESCOLHA A OPÇAO DESEJADA:");
+		painelTopo.add(label);
 		painelTopo.add(op1);
 		painelTopo.add(op2);
 		painelTopo.add(op3);
@@ -51,7 +53,7 @@ public class TelaPrincipal extends JFrame {
 		painelTopo.add(op8);
 		painelTopo.add(op9);
 		
-		add(painelTopo);
+		getContentPane().add(painelTopo);
 		
 		op1.addActionListener(new ActionListener() {
 			
@@ -65,54 +67,12 @@ public class TelaPrincipal extends JFrame {
 		});
 		
 		op2.addActionListener(new ActionListener() {
-		    
 		    @Override
 		    public void actionPerformed(ActionEvent e) {
-		        // 1. Pega a lista de alunos direto do sistema
-		        List<Aluno> listaAlunos = SistemaAcademico.getInstancia().getAluno();
-		        
-		        // 2. Se a lista estiver vazia, nem abre o pop-up, já avisa e sai
-		        if (listaAlunos.isEmpty()) {
-		            JOptionPane.showMessageDialog(null, "Não há alunos cadastrados para excluir.", "Aviso", JOptionPane.WARNING_MESSAGE);
-		            return;
-		        }
-		        
-		        // 3. Converte a lista de alunos para um Vetor de Nomes (String[])
-		        String[] nomesAlunos = new String[listaAlunos.size()];
-		        for (int i = 0; i < listaAlunos.size(); i++) {
-		            nomesAlunos[i] = listaAlunos.get(i).getNome();
-		        }
-		        
-		        // 4. A MÁGICA DO DROPDOWN: Usamos a versão do showInputDialog que recebe o vetor!
-		        String nomeBusca = (String) JOptionPane.showInputDialog(
-		            null, 
-		            "Selecione o aluno que deseja excluir:", 
-		            "Excluir Aluno", 
-		            JOptionPane.QUESTION_MESSAGE, 
-		            null,           // Ícone padrão
-		            nomesAlunos,    // <-- AQUI ESTÁ O VETOR QUE VIRA O COMBOBOX!
-		            nomesAlunos[0]  // Opção que já vem selecionada por padrão
-		        );
-		        
-		        // 5. Se clicou em cancelar (ou no 'X'), retorna null
-		        if (nomeBusca == null) {
-		            return; 
-		        }
-		        
-		        // Repare que tiramos a validação de .isEmpty(), porque agora é impossível ele deixar em branco!
-		        
-		        // 6. Faz a exclusão
-		        Aluno alunoExcluir = SistemaAcademico.getInstancia().buscarAlunoPorNome(nomeBusca);
-		        
-		        if (alunoExcluir != null) {
-		            SistemaAcademico.getInstancia().excluirAluno(alunoExcluir);
-		            JOptionPane.showMessageDialog(null, "O aluno " + nomeBusca + " foi removido com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
-		        } else {
-		            // Isso aqui dificilmente vai acontecer agora, mas é bom manter por segurança
-		            JOptionPane.showMessageDialog(null, "Erro aluno não encontrado : " + nomeBusca, "Não encontrado", JOptionPane.ERROR_MESSAGE);
-		        }
+		        TelaExcluirAluno telaExcluir = new TelaExcluirAluno();
+		        telaExcluir.setVisible(true);
 		    }
-		});		
+		});
 		op3.addActionListener(new ActionListener() {
 			
 			@Override
